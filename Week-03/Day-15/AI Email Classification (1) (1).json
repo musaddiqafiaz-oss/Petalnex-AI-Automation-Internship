@@ -1,0 +1,456 @@
+{
+  "name": "AI Email Classification",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "= ## AI Email Classification Prompt\n\nYou are an email classification system. Your ONLY job is to classify the email into exactly ONE category.\n\nAllowed categories:\nSales\nSupport\nComplaint\nInvoice\nSpam\nGeneral\n\nFollow these rules:\n\n* SALES: The sender wants to buy something, asks about product/service prices, plans, packages, availability, or purchasing.\n* SUPPORT: The sender needs help with an existing product/service, such as login problems, technical problems, account problems, or how-to questions.\n* COMPLAINT: The sender is unhappy, dissatisfied, reports poor service, damaged products, delays, or a bad experience.\n* INVOICE: The sender asks about an invoice, bill, receipt, payment, transaction, or billing document.\n* SPAM: The email is suspicious, unsolicited, irrelevant, or clearly unwanted promotional content.\n* GENERAL: Use this ONLY when the email does not clearly match any of the five categories above.\n\nIMPORTANT:\n\n* Choose the category based on the main purpose of the email.\n* Do NOT choose General if the email clearly matches another category.\n* Return ONLY ONE category name.\n* Do not provide an explanation.\n* Do not add punctuation.\n* Do not write \"Category:\".\n\nEmail to classify:\n{{ $json.textPlain }}\n",
+        "messages": {
+          "messageValues": []
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        224,
+        0
+      ],
+      "id": "d40e1470-9569-4666-8fe9-ccb98408416a",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        240
+      ],
+      "id": "409c68c2-48be-463d-aa2a-013ba470d2c0",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "QMnVUDQiUa9DrPjR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "Support",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "95aab538-7793-4d12-98fd-0f4b256f6122"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "513e57ff-c01f-4b72-83c1-d9c219e3afc5",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "Sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "17fb83d9-9a3c-4dc2-a81a-cbe148e39452",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "Complaint",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a30060ec-3323-4fc6-b359-630de57f1948",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "Invoice",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "546c066e-161b-4c90-9238-ad2c7413f177",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "Spam",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "64450e3e-1af5-4d7f-80fd-599fa522dc30",
+                    "leftValue": "={{ $json.text }}",
+                    "rightValue": "General",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        0
+      ],
+      "id": "3dfe4d0d-3eea-416b-8675-c26953034a3d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5cad6ee6-ce8d-48c5-b47f-4c0b8a4248f1",
+              "name": "Support",
+              "value": "Send to Support Team",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1056,
+        -304
+      ],
+      "id": "4ff502b6-2a8f-4862-b16f-6b501806fc54",
+      "name": "Support"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "89b15d53-3344-43a5-9c9c-1ffeefa7b1b3",
+              "name": "Sales",
+              "value": "Send to Sales Team",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1072,
+        -128
+      ],
+      "id": "e9b9d143-8c52-47fa-86aa-a97fa16850fd",
+      "name": "Sales"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0e6eae32-4dae-49c5-8258-2000604d6262",
+              "name": " Complaint",
+              "value": "Escalate to Customer Service",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1088,
+        32
+      ],
+      "id": "5142f12e-2bc1-40c6-a36e-053c0a74543b",
+      "name": "Complaint"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "52416e7b-c87b-4e29-a1d0-a48597723bcd",
+              "name": "Invoice",
+              "value": "Send to Billing Team",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1104,
+        208
+      ],
+      "id": "87eacacf-3ae4-44ea-b59c-959640a2567c",
+      "name": "Invoice"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14d09761-dbdc-48ae-8bc4-c5a4112e09ac",
+              "name": "Spam",
+              "value": "Move to Spam",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1264,
+        336
+      ],
+      "id": "613c2b01-23cd-41fd-9ef7-d6b11c337b27",
+      "name": "Spam"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ae948692-8712-4ef5-b310-64931ccb7cbd",
+              "name": "General",
+              "value": "Send to General Inbox",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1104,
+        416
+      ],
+      "id": "13efa0e3-78be-4538-9837-34f208b71f5d",
+      "name": "General"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6ccaf45e-04e6-43b6-a1cc-4c71094f25c6",
+      "name": "Email Trigger (IMAP)",
+      "credentials": {
+        "imap": {
+          "id": "eDnnAamRHHYq0hUr",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        -256
+      ],
+      "id": "88704ea8-ab98-4e27-a828-9af9084e6b93",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Support",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Complaint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Spam",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "8bf9a935-9a78-4dc6-bea6-42812fa1d129",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "11957785ac372bccb58a4e938e3e05348aafe02b6b7489edb17ba9fed72300a9"
+  },
+  "nodeGroups": [],
+  "id": "7Obgk9lZcxPu34WF",
+  "tags": []
+}
