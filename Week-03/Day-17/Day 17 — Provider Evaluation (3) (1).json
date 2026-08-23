@@ -1,0 +1,383 @@
+{
+  "name": "Day 17 — Provider Evaluation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -64
+      ],
+      "id": "b9044c43-b07e-45bd-98af-646df173b834",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an email classification assistant.\n\nClassify the email into exactly ONE of these categories:\n\nSales\nSupport\nComplaint\nInvoice\nSpam\nGeneral\n\nRules:\n- Sales: pricing, products, services, purchases, discounts, or sales inquiries.\n- Support: technical problems, account problems, login problems, or requests for help.\n- Complaint: dissatisfaction, complaints, disputes, or problems with a service/order.\n- Invoice: invoices, receipts, bills, payments, or billing documents.\n- Spam: unsolicited, suspicious, promotional scams, or fraudulent messages.\n- General: messages that do not clearly belong to the other categories.\n\nReturn ONLY the category name.\nDo not provide an explanation.\n\nEmail:\n{{ $json.email }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        512,
+        -48
+      ],
+      "id": "567601b1-5283-448c-b3c5-58063fb7d260",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.6-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        96
+      ],
+      "id": "91ff1239-1626-479e-b5b7-e9113bf4487b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sjEkZYKawDsc7SF0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        48,
+        -64
+      ],
+      "id": "4719c225-004f-4f05-bd53-c5b35e1952fb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an email classification assistant.\n\nClassify the email into exactly ONE of these categories:\n\nSales\nSupport\nComplaint\nInvoice\nSpam\nGeneral\n\nRules:\n- Sales: pricing, products, services, purchases, discounts, or sales inquiries.\n- Support: technical problems, account problems, login problems, or requests for help.\n- Complaint: dissatisfaction, complaints, disputes, or problems with a service/order.\n- Invoice: invoices, receipts, bills, payments, or billing documents.\n- Spam: unsolicited, suspicious, promotional scams, or fraudulent messages.\n- General: messages that do not clearly belong to the other categories.\n\nReturn ONLY the category name.\nDo not provide an explanation.\n\nEmail:\n{{ $json.email }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        432,
+        -336
+      ],
+      "id": "ec77ead7-1c23-47ea-a885-a00109195b3c",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -224
+      ],
+      "id": "303a9fc3-c460-4888-9271-64f26d647bc7",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "QMnVUDQiUa9DrPjR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1248,
+        -112
+      ],
+      "id": "1ef75cb8-8dfc-4537-99aa-a7f22e55180a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "amount": 15
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        48
+      ],
+      "id": "f6aa4f84-29f4-4e35-ad54-0410466f3893",
+      "name": "Wait",
+      "webhookId": "4035f86e-dd02-4d6f-b65c-46ba66349573"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst total = items.length;\nlet gPassed = 0, qPassed = 0, gErrors = 0, qErrors = 0;\nlet gTotalLatency = 0, qTotalLatency = 0;\nlet gTotalCost = 0, qTotalCost = 0;\n\nitems.forEach(item => {\n  if (item.gemini_status === \"PASS\") gPassed++;\n  if (item.gemini_status === \"ERROR\") gErrors++;\n  if (item.groq_status === \"PASS\") qPassed++;\n  if (item.groq_status === \"ERROR\") qErrors++;\n  gTotalLatency += (item.gemini_latency_ms || 0);\n  qTotalLatency += (item.groq_latency_ms || 0);\n  gTotalCost += (item.gemini_cost || 0);\n  qTotalCost += (item.groq_cost || 0);\n});\n\nreturn [{\n  json: {\n    total_test_cases: total,\n    metrics: {\n      gemini: {\n        accuracy: ((gPassed / total) * 100).toFixed(1) + \"%\",\n        errors: gErrors,\n        avg_latency: (gTotalLatency / total).toFixed(0) + \" ms\",\n        total_est_cost: \"$\" + gTotalCost.toFixed(5)\n      },\n      groq: {\n        accuracy: ((qPassed / total) * 100).toFixed(1) + \"%\",\n        errors: qErrors,\n        avg_latency: (qTotalLatency / total).toFixed(0) + \" ms\",\n        total_est_cost: \"$\" + qTotalCost.toFixed(5)\n      }\n    },\n    recommendation: gPassed >= qPassed ? \"Google Gemini\" : \"Groq\",\n    results_table: items\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        112
+      ],
+      "id": "d68f2d4c-0acb-4f8d-86bf-da9e4cf5cbe7",
+      "name": "Report"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      test_id: 1,\n      email: \"I would like to know the price of your premium package.\",\n      expected: \"Sales\"\n    }\n  },\n  {\n    json: {\n      test_id: 2,\n      email: \"My account password is not working. Please help me reset it.\",\n      expected: \"Support\"\n    }\n  },\n  {\n    json: {\n      test_id: 3,\n      email: \"I am extremely unhappy with your service and want to file a complaint.\",\n      expected: \"Complaint\"\n    }\n  },\n  {\n    json: {\n      test_id: 4,\n      email: \"Please find attached the invoice for last month's subscription.\",\n      expected: \"Invoice\"\n    }\n  },\n  {\n    json: {\n      test_id: 5,\n      email: \"Congratulations! You have won $10,000. Click here to claim your prize.\",\n      expected: \"Spam\"\n    }\n  },\n  {\n    json: {\n      test_id: 6,\n      email: \"Can you tell me what your company does and what services you provide?\",\n      expected: \"General\"\n    }\n  },\n  {\n    json: {\n      test_id: 7,\n      email: \"Do you offer discounts for companies purchasing 50 licenses?\",\n      expected: \"Sales\"\n    }\n  },\n  {\n    json: {\n      test_id: 8,\n      email: \"The application keeps showing an error when I try to log in.\",\n      expected: \"Support\"\n    }\n  },\n  {\n    json: {\n      test_id: 9,\n      email: \"I was charged twice for the same order. Please check this immediately.\",\n      expected: \"Complaint\"\n    }\n  },\n  {\n    json: {\n      test_id: 10,\n      email: \"Please send me a copy of my payment receipt.\",\n      expected: \"Invoice\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        -64
+      ],
+      "id": "a0aa6ce1-5e8d-4273-ac30-92800f345f28",
+      "name": "10 dataset"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    ...item.json,\n    gemini_start: Date.now()\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -48
+      ],
+      "id": "839e58ed-8713-48ee-8306-b129ad1e997c",
+      "name": "Start Time"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    ...item.json,\n    groq_start: Date.now()\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -336
+      ],
+      "id": "8a33abd5-a5ec-47b2-9bf7-1d76146b127f",
+      "name": "Start Time1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fixed: real character-count-based cost estimate instead of a flat constant,\n// falls back gracefully, and marks failed calls instead of silently scoring them FAIL-as-empty.\nconst GEMINI_INPUT_PER_1K = 0.000075;   // USD per 1K input tokens (gemini-1.5-flash, approx)\nconst GEMINI_OUTPUT_PER_1K = 0.00030;   // USD per 1K output tokens (approx)\nconst CHARS_PER_TOKEN = 4;              // rough heuristic when real usage isn't exposed\n\nreturn $input.all().map(item => {\n  const endTime = Date.now();\n  const startTime = item.json.gemini_start || endTime;\n\n  const hadError = Boolean(item.json.error);\n  const outputText = String(item.json.text || item.json.output || \"\").trim();\n  const expectedText = String($('Start Time').item.json.expected || \"\").trim();\n  const promptText = String($('Start Time').item.json.email || \"\");\n\n  const isPass = !hadError && expectedText !== \"\" && outputText.toLowerCase().includes(expectedText.toLowerCase());\n\n  // Prefer real token usage if the model node exposed it, otherwise estimate from char count\n  const usage = item.json.tokenUsage || item.json.usage_metadata || null;\n  const inputTokens = usage?.promptTokens ?? usage?.input_tokens ?? Math.ceil(promptText.length / CHARS_PER_TOKEN);\n  const outputTokens = usage?.completionTokens ?? usage?.output_tokens ?? Math.ceil(outputText.length / CHARS_PER_TOKEN);\n  const estCost = (inputTokens / 1000) * GEMINI_INPUT_PER_1K + (outputTokens / 1000) * GEMINI_OUTPUT_PER_1K;\n\n  return {\n    json: {\n      ...item.json,\n      gemini_output: outputText,\n      gemini_status: hadError ? \"ERROR\" : (isPass ? \"PASS\" : \"FAIL\"),\n      gemini_error: hadError ? String(item.json.error) : null,\n      gemini_latency_ms: endTime - startTime,\n      gemini_cost: Number(estCost.toFixed(6))\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -48
+      ],
+      "id": "e452a9b0-1ba1-45ce-bac0-7a0052d2c1f7",
+      "name": "Latency"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fixed: same real-cost estimation approach as the Gemini branch, plus error marking.\nconst GROQ_INPUT_PER_1K = 0.00005;   // USD per 1K input tokens (approx, Groq llama3-8b tier)\nconst GROQ_OUTPUT_PER_1K = 0.00008;  // USD per 1K output tokens (approx)\nconst CHARS_PER_TOKEN = 4;\n\nreturn $input.all().map(item => {\n  const endTime = Date.now();\n  const startTime = item.json.groq_start || endTime;\n\n  const hadError = Boolean(item.json.error);\n  const outputText = String(item.json.text || item.json.output || \"\").trim();\n  const expectedText = String($('Start Time1').item.json.expected || \"\").trim();\n  const promptText = String($('Start Time1').item.json.email || \"\");\n\n  const isPass = !hadError && expectedText !== \"\" && outputText.toLowerCase().includes(expectedText.toLowerCase());\n\n  const usage = item.json.tokenUsage || item.json.usage_metadata || null;\n  const inputTokens = usage?.promptTokens ?? usage?.input_tokens ?? Math.ceil(promptText.length / CHARS_PER_TOKEN);\n  const outputTokens = usage?.completionTokens ?? usage?.output_tokens ?? Math.ceil(outputText.length / CHARS_PER_TOKEN);\n  const estCost = (inputTokens / 1000) * GROQ_INPUT_PER_1K + (outputTokens / 1000) * GROQ_OUTPUT_PER_1K;\n\n  return {\n    json: {\n      ...item.json,\n      groq_output: outputText,\n      groq_status: hadError ? \"ERROR\" : (isPass ? \"PASS\" : \"FAIL\"),\n      groq_error: hadError ? String(item.json.error) : null,\n      groq_latency_ms: endTime - startTime,\n      groq_cost: Number(estCost.toFixed(6))\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -336
+      ],
+      "id": "7c86efc2-b5e0-4fea-8256-45360e357087",
+      "name": "Latency2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "10 dataset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Start Time",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Start Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Latency",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Latency2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report": {
+      "main": [
+        []
+      ]
+    },
+    "10 dataset": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Time": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Time1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Latency": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Latency2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "356d60b4-aaa9-4cf8-af2e-ae8f8c492147",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "11957785ac372bccb58a4e938e3e05348aafe02b6b7489edb17ba9fed72300a9"
+  },
+  "nodeGroups": [],
+  "id": "NOFDWD5MyXvsjw5v",
+  "tags": []
+}
