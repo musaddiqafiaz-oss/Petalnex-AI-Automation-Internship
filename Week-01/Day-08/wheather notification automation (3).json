@@ -1,0 +1,175 @@
+{
+  "name": "wheather notification automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                0,
+                1,
+                3,
+                5,
+                6,
+                2,
+                4
+              ],
+              "triggerAtHour": 13
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        0
+      ],
+      "id": "c9c26e20-6356-4a45-8267-645a4b787ce9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.weatherapi.com/v1/current.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "Mansehra"
+            },
+            {
+              "name": "aqi",
+              "value": "no"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "f3bab0ac-4622-4dc1-8809-53b5ae5f95d5",
+      "name": " Weather API (HTTP Request) ",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "iSQj5QuNYB2y688M",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ccabe225-1d81-4966-97fb-60ffbef14160",
+              "leftValue": "={{ $json.current.condition.text }}",
+              "rightValue": "rain",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a9bad8b8-c589-48aa-8fe5-8b5332480415",
+      "name": "Check If Rain Expected"
+    },
+    {
+      "parameters": {
+        "sendTo": "musaddiqafiaz@gmail.com",
+        "subject": "wheather alert",
+        "emailType": "text",
+        "message": "=Rain is expected today in {{ $json.location.name }}   current wheather is  {{ $json.current.condition.text }}      \nplease carry an umbrella ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        -64
+      ],
+      "id": "bcb3b7f2-24a7-418a-a7a6-81af519610b9",
+      "name": "   Send Notification",
+      "webhookId": "04757452-caa9-41c4-8e54-bc17dab16d11",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4L2Zh1rSxEcYJX7c",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": " Weather API (HTTP Request) ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    " Weather API (HTTP Request) ": {
+      "main": [
+        [
+          {
+            "node": "Check If Rain Expected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Rain Expected": {
+      "main": [
+        [
+          {
+            "node": "   Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "74b641b7-a998-497a-92b7-2ece52cc0663",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "11957785ac372bccb58a4e938e3e05348aafe02b6b7489edb17ba9fed72300a9"
+  },
+  "nodeGroups": [],
+  "id": "Y30infJG7ImHfJnV",
+  "tags": []
+}
