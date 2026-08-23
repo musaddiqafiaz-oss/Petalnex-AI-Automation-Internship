@@ -1,0 +1,323 @@
+{
+  "name": "Day 16 - Structured AI Output",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1a1a1a1a-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-160, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2a2a2a2a-0001-4000-8000-000000000002",
+              "name": "user_message",
+              "type": "string",
+              "value": "This is the best product ever, I'm furious and want a refund immediately, also just saying hello."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a2a2a2a-0001-4000-8000-000000000002",
+      "name": "Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a support-ticket classifier for Petalnex Pvt. Ltd.\n\nClassify the following message and return ONLY the structured JSON as instructed.\nIf any field is genuinely unclear or cannot be determined confidently from the message, set that field to \"Unknown\" instead of guessing.\n\nMessage: {{ $json.user_message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You must always respond with valid JSON matching the given schema. Never add commentary, markdown formatting, or text outside the JSON object."
+        }
+      },
+      "id": "3a3a3a3a-0001-4000-8000-000000000003",
+      "name": "Classify Message (LLM Chain)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "4a4a4a4a-0001-4000-8000-000000000004",
+      "name": "Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [220, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\"Billing\", \"Technical\", \"General Inquiry\", \"Complaint\", \"Other\", \"Unknown\"]\n    },\n    \"priority\": {\n      \"type\": \"string\",\n      \"enum\": [\"Low\", \"Medium\", \"High\", \"Urgent\", \"Unknown\"]\n    },\n    \"sentiment\": {\n      \"type\": \"string\",\n      \"enum\": [\"Positive\", \"Neutral\", \"Negative\", \"Unknown\"]\n    },\n    \"department\": {\n      \"type\": \"string\",\n      \"enum\": [\"Sales\", \"Support\", \"Engineering\", \"Finance\", \"HR\", \"Unknown\"]\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"One-sentence summary of the input, max 20 words\"\n    }\n  },\n  \"required\": [\"category\", \"priority\", \"sentiment\", \"department\", \"summary\"],\n  \"additionalProperties\": false\n}"
+      },
+      "id": "5a5a5a5a-0001-4000-8000-000000000005",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [400, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const allowedCategory   = [\"Billing\",\"Technical\",\"General Inquiry\",\"Complaint\",\"Other\",\"Unknown\"];\nconst allowedPriority   = [\"Low\",\"Medium\",\"High\",\"Urgent\",\"Unknown\"];\nconst allowedSentiment  = [\"Positive\",\"Neutral\",\"Negative\",\"Unknown\"];\nconst allowedDepartment = [\"Sales\",\"Support\",\"Engineering\",\"Finance\",\"HR\",\"Unknown\"];\n\n// The LLM Chain node output lands in different keys depending on version\nconst raw = $input.item.json.output ?? $input.item.json.text ?? $input.item.json;\nlet data = raw;\n\n// If it came back as a stringified JSON, try to parse it safely\nif (typeof raw === \"string\") {\n  try {\n    data = JSON.parse(raw);\n  } catch (e) {\n    data = {};\n  }\n}\n\nconst requiredFields = [\"category\",\"priority\",\"sentiment\",\"department\",\"summary\"];\nconst missing = requiredFields.filter(f => !(f in data) || data[f] === null || data[f] === \"\");\n\nconst enumErrors = [];\nif (data.category   && !allowedCategory.includes(data.category))     enumErrors.push(\"category\");\nif (data.priority   && !allowedPriority.includes(data.priority))     enumErrors.push(\"priority\");\nif (data.sentiment  && !allowedSentiment.includes(data.sentiment))   enumErrors.push(\"sentiment\");\nif (data.department && !allowedDepartment.includes(data.department)) enumErrors.push(\"department\");\n\n// Also treat a fully unparsable / totally empty object as invalid\nconst isEmptyObject = Object.keys(data).length === 0;\n\nconst isValid = missing.length === 0 && enumErrors.length === 0 && !isEmptyObject;\n\nreturn [{\n  json: {\n    category: data.category ?? null,\n    priority: data.priority ?? null,\n    sentiment: data.sentiment ?? null,\n    department: data.department ?? null,\n    summary: data.summary ?? null,\n    isValid,\n    missing,\n    enumErrors\n  }\n}];"
+      },
+      "id": "6a6a6a6a-0001-4000-8000-000000000006",
+      "name": "Validate Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "7a7a7a7a-0001-4000-8000-000000000007",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8a8a8a8a-0001-4000-8000-000000000008",
+      "name": "IF Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a9a9a9a-0001-4000-8000-000000000009",
+              "name": "status",
+              "type": "string",
+              "value": "success"
+            },
+            {
+              "id": "9a9a9a9a-0001-4000-8000-00000000000a",
+              "name": "category",
+              "type": "string",
+              "value": "={{ $json.category }}"
+            },
+            {
+              "id": "9a9a9a9a-0001-4000-8000-00000000000b",
+              "name": "priority",
+              "type": "string",
+              "value": "={{ $json.priority }}"
+            },
+            {
+              "id": "9a9a9a9a-0001-4000-8000-00000000000c",
+              "name": "sentiment",
+              "type": "string",
+              "value": "={{ $json.sentiment }}"
+            },
+            {
+              "id": "9a9a9a9a-0001-4000-8000-00000000000d",
+              "name": "department",
+              "type": "string",
+              "value": "={{ $json.department }}"
+            },
+            {
+              "id": "9a9a9a9a-0001-4000-8000-00000000000e",
+              "name": "summary",
+              "type": "string",
+              "value": "={{ $json.summary }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9a9a9a9a-0001-4000-8000-00000000000f",
+      "name": "Success Path",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1000, 180]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000001",
+              "name": "status",
+              "type": "string",
+              "value": "fallback_triggered"
+            },
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000002",
+              "name": "category",
+              "type": "string",
+              "value": "Unclassified"
+            },
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000003",
+              "name": "priority",
+              "type": "string",
+              "value": "Medium"
+            },
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000004",
+              "name": "sentiment",
+              "type": "string",
+              "value": "Neutral"
+            },
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000005",
+              "name": "department",
+              "type": "string",
+              "value": "Support"
+            },
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000006",
+              "name": "summary",
+              "type": "string",
+              "value": "Could not classify automatically - routed for manual review."
+            },
+            {
+              "id": "aaaaaaaa-0001-4000-8000-000000000007",
+              "name": "error_details",
+              "type": "string",
+              "value": "=Missing: {{ $json.missing.join(', ') }} | Invalid enum values: {{ $json.enumErrors.join(', ') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "aaaaaaaa-0001-4000-8000-000000000008",
+      "name": "Fallback Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1000, 420]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input": {
+      "main": [
+        [
+          {
+            "node": "Classify Message (LLM Chain)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classify Message (LLM Chain)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Classify Message (LLM Chain)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Message (LLM Chain)": {
+      "main": [
+        [
+          {
+            "node": "Validate Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Output": {
+      "main": [
+        [
+          {
+            "node": "IF Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Valid?": {
+      "main": [
+        [
+          {
+            "node": "Success Path",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
