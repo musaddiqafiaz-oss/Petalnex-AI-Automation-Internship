@@ -1,0 +1,516 @@
+{
+  "name": "ingestion workflow.",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        256,
+        1072
+      ],
+      "id": "49a348c6-8407-4c0a-9ae2-b04ec87261da",
+      "name": "When chat message received",
+      "webhookId": "f1b5298c-ec55-488a-af7b-9ff79af4ea40"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        496,
+        1168
+      ],
+      "id": "648ad69d-8ef1-435b-8f8f-12eae71659a8",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sjEkZYKawDsc7SF0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        832
+      ],
+      "id": "21b99bcd-e2e7-4d61-bc41-8ea06910347f",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1c0rnhnKYQLWBEVKMN36zHZU02V8i_tWYediwkQH8Pl4",
+          "mode": "list",
+          "cachedResultName": "HR Policy Knowledge Base",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1c0rnhnKYQLWBEVKMN36zHZU02V8i_tWYediwkQH8Pl4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1c0rnhnKYQLWBEVKMN36zHZU02V8i_tWYediwkQH8Pl4/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -560,
+        832
+      ],
+      "id": "a1a1e6ee-1a86-435b-aaa3-34c843c4bdf9",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "s0sPkt7vqrenWyIU",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2512cee-0c13-48fa-b74f-bc3474fcd604",
+              "name": "content",
+              "value": "={{$json.content}}",
+              "type": "string"
+            },
+            {
+              "id": "00b56382-7cc9-463e-9287-6c13be572f2d",
+              "name": "policy",
+              "value": "={{ $json.policy }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -240,
+        848
+      ],
+      "id": "d37df4d6-4084-4c5b-9bae-0ef612f8f607",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        768
+      ],
+      "id": "715a6d3a-b197-4db1-9362-d82b65486a0a",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "nZDkHNGiI6AA9Q7K",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean Content step\n// Trims whitespace, collapses newlines/extra spaces, strips stray HTML tags\nfor (const item of $input.all()) {\n  let content = (item.json.content ?? '').toString();\n  content = content\n    .replace(/<[^>]*>/g, ' ')   // strip any HTML tags\n    .replace(/\\s+/g, ' ')       // collapse whitespace/newlines\n    .trim();\n\n  item.json.content = content;\n  item.json.title = (item.json.title ?? '').toString().trim();\n  item.json.category = (item.json.category ?? '').toString().trim();\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        848
+      ],
+      "id": "90dc4732-9e25-4a3a-89d8-059c67692dd8",
+      "name": "clean content"
+    },
+    {
+      "parameters": {
+        "chunkSize": 500,
+        "chunkOverlap": 50,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        48,
+        1120
+      ],
+      "id": "08074d3d-8987-4e65-baef-0870d8c3008a",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "title",
+                "value": "={{ $json.title }}"
+              },
+              {
+                "name": "category",
+                "value": "={{ $json.category }}"
+              },
+              {
+                "name": "source",
+                "value": "={{ $json.title }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        32,
+        1040
+      ],
+      "id": "f6a92426-233b-496e-a0e0-1ba16d2afc54",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        1024
+      ],
+      "id": "824dbe7c-f950-4bb6-b522-71aa7913fb4c",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sjEkZYKawDsc7SF0",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an HR Policy Assistant.\n\nAnswer the user's question ONLY using the provided context from the HR Policy Knowledge Base.\n\nRules:\n1. Do not use outside knowledge.\n2. Do not invent or assume company policies.\n3. If the answer is not clearly present in the context, do not answer from your own knowledge.\n4. Give a concise and clear answer.\n5. Do not mention information that is unrelated to the question.\n\nKnowledge Base Context:\n{{ $json.context }}\n\nUser Question:\n{{ $('When chat message received').item.json.chatInput }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1088,
+        1024
+      ],
+      "id": "f10af77d-0cb0-49f7-b317-fddf7b45e8f2",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        1168
+      ],
+      "id": "ce2f2237-c5f8-446d-b62c-d3cafee69cc5",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "QMnVUDQiUa9DrPjR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Inspect retrieved chunks.\n// NOTE: this Supabase Vector Store node returns items shaped like\n// { document: { pageContent, metadata } } - the content/metadata are\n// nested under \"document\", not flat on the item. Read from there.\nconst docs = items\n  .map(i => i.json.document || i.json)\n  .filter(d => d && (d.pageContent || d.content));\n\nif (docs.length === 0) {\n  return [{ json: { inKnowledgeBase: false, context: '', sources: [] } }];\n}\n\nconst context = docs.map(d => `Source: ${d.metadata?.source || d.metadata?.title || 'unknown'}\\n${d.pageContent || d.content}`).join('\\n\\n---\\n\\n');\nconst sources = [...new Set(docs.map(d => d.metadata?.source || d.metadata?.title || 'unknown'))];\n\nreturn [{\n  json: {\n    inKnowledgeBase: true,\n    context,\n    sources\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        1040
+      ],
+      "id": "92857b78-fd12-4723-8452-17feb9172029",
+      "name": "Score & Build Context"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a40d83b2-4b62-459e-aad4-2a420cdeefd4",
+              "leftValue": "={{ $json.inKnowledgeBase }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        1040
+      ],
+      "id": "81f4ddad-f170-4831-9a56-a2a50feb72fc",
+      "name": "Answer Found In KB?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    output: \"I'm sorry, that information is not available in the HR policy knowledge base I have access to (leave policy, working hours, attendance, internship guidelines, code of conduct). Please check with the HR team directly or consult the full policy handbook.\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        1248
+      ],
+      "id": "b8ceee72-9317-4154-92a3-b234b93cbf81",
+      "name": "Fallback - Not In KB"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sources = $('Score & Build Context').item.json.sources || [];\nreturn [{ json: { output: $json.text + `\\n\\nSource: ${sources.join(', ')}` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        1024
+      ],
+      "id": "21dc4681-dabb-4af4-b4bf-77fd553f1cb6",
+      "name": "Append Source Citation"
+    },
+    {
+      "parameters": {
+        "mode": "load",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "prompt": "={{ $('When chat message received').item.json.chatInput }}",
+        "topK": 5,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        848
+      ],
+      "id": "972ff4ba-4c94-4c1e-a817-8f08b119d12b",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "nZDkHNGiI6AA9Q7K",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "clean content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean content": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Append Source Citation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score & Build Context": {
+      "main": [
+        [
+          {
+            "node": "Answer Found In KB?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Found In KB?": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback - Not In KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "main": [
+        [
+          {
+            "node": "Score & Build Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f36f67ac-47e9-49e5-953f-8ba8292b6819",
+  "meta": {
+    "instanceId": "11957785ac372bccb58a4e938e3e05348aafe02b6b7489edb17ba9fed72300a9"
+  },
+  "nodeGroups": [],
+  "id": "6AmkQ0rL6WpaQyp1",
+  "tags": []
+}
