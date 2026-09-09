@@ -1,0 +1,197 @@
+{
+  "name": "Day 23 - Multi Tool AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        16,
+        -16
+      ],
+      "id": "701a3152-7848-4140-b74f-c16524a52a92",
+      "name": "When chat message received",
+      "webhookId": "7aa28d17-ee8c-418d-8691-1d95cc3bb532"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "SENSITIVE ACTION RULE:\n\nDeleting an employee record is a sensitive action.\n\nIf the user asks to delete an employee record:\n\n1. Do not delete the record immediately.\n2. Identify the record that would be deleted.\n3. Tell the user which record will be deleted.\n4. Ask for explicit confirmation.\n5. Only continue with the deletion after the user explicitly confirms.\n\nNever assume confirmation.\nNever interpret a normal request as confirmation.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        16
+      ],
+      "id": "40a6fda6-915d-4394-a32c-1b31cd353009",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        384,
+        208
+      ],
+      "id": "35ee1c8b-e9fd-497d-8ac6-be4ea2984371",
+      "name": "Calculator",
+      "notes": "Use this tool for arithmetic calculations, percentages,\ntotals, averages, multiplication, division, addition,\nsubtraction, and other numerical calculations."
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool when the user needs information from an\nexternal HTTP API. Use it for external data retrieval.\nDo not use this tool for mathematical calculations or\ninternal company data.",
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        496,
+        192
+      ],
+      "id": "0de546ac-e830-4740-b7b1-6da6da0de7f3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        256,
+        160
+      ],
+      "id": "30c23133-17d7-45a6-a6e8-5f76d84afb50",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "QMnVUDQiUa9DrPjR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "http://localhost:5678/mcp-test/mcp/day23-tools",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        96
+      ],
+      "id": "0442971d-a1d3-4fe6-acbe-06dd980da0a6",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WCprbuBI1CN3aLjQ",
+          "mode": "list",
+          "cachedResultName": "employees",
+          "cachedResultUrl": "/projects/Usf16OEfrytzOyJR/datatables/WCprbuBI1CN3aLjQ"
+        }
+      },
+      "type": "n8n-nodes-base.dataTableTool",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        160
+      ],
+      "id": "81164970-971c-4be8-b97e-cf5be19d2fcc",
+      "name": "Get row(s) in Data table"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in Data table": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "91d0c4b1-b9ef-43f0-b668-afb6f78c3944",
+  "meta": {
+    "instanceId": "11957785ac372bccb58a4e938e3e05348aafe02b6b7489edb17ba9fed72300a9"
+  },
+  "nodeGroups": [],
+  "id": "m6BFgKvo3Zhe4NyI",
+  "tags": []
+}

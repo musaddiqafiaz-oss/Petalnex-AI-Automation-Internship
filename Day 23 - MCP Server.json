@@ -1,0 +1,60 @@
+{
+  "name": "Day 23 - MCP Server",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "mcp/day23-tools"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        16
+      ],
+      "id": "b3407f25-93ec-4031-b6b2-414878e377e2",
+      "name": "MCP Server Trigger",
+      "webhookId": "c4871ac5-d127-4346-a2fc-ac7ee7afaacf"
+    },
+    {
+      "parameters": {
+        "description": "Returns a small remote MCP greeting/status result. Use this tool to demonstrate that the AI Agent can call a remote MCP tool.",
+        "jsCode": "return `Remote MCP tool reached successfully. Query received: ${query}`;"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        176
+      ],
+      "id": "4f422066-4ede-4ce8-bab7-9b915dd0f128",
+      "name": "Remote Status Tool"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Remote Status Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "83d47508-52ae-48a1-ac4d-17be1afc7ed8",
+  "meta": {
+    "instanceId": "11957785ac372bccb58a4e938e3e05348aafe02b6b7489edb17ba9fed72300a9"
+  },
+  "nodeGroups": [],
+  "id": "ksAvSJBlYIGguOm0",
+  "tags": []
+}

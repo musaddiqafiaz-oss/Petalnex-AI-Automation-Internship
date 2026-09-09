@@ -1,1 +1,0 @@
-# Petalnex-AI-Automation-Internship
